@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:mongo="http://www.springframework.org/schema/data/mongo"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+						http://www.springframework.org/schema/beans/spring-beans-4.1.xsd 
+						http://www.springframework.org/schema/data/mongo
+    					http://www.springframework.org/schema/data/mongo/spring-mongo.xsd">
+    
+    <!--mongo配置开始-->
+    <mongo:mongo host="${mongo_host}" port="${mongo_port}">
+        <mongo:options connections-per-host="30"
+                       threads-allowed-to-block-for-connection-multiplier="10"
+                       auto-connect-retry="true"/>
+    </mongo:mongo>
+    
+    <mongo:db-factory id="mailfactory" mongo-ref="mongo" dbname="userbank"></mongo:db-factory>
+    <mongo:db-factory id="noticefactory" mongo-ref="mongo" dbname="userbank"></mongo:db-factory>
+    <mongo:db-factory id="winloselogfactory" mongo-ref="mongo" dbname="userbank"></mongo:db-factory>
+    <mongo:db-factory id="onlinefactory" mongo-ref="mongo" dbname="userbank"></mongo:db-factory>
+    
+    <bean id="bankmongo" class="org.springframework.data.mongodb.core.MongoTemplate">
+        <constructor-arg ref="mailfactory"/>
+    </bean>
+    
+    <bean id="noticemongo" class="org.springframework.data.mongodb.core.MongoTemplate">
+        <constructor-arg ref="noticefactory"/>
+    </bean>
+    
+    <bean id="winloselogmongo" class="org.springframework.data.mongodb.core.MongoTemplate">
+        <constructor-arg ref="winloselogfactory"/>
+    </bean>
+    
+    <bean id="onlinemongo" class="org.springframework.data.mongodb.core.MongoTemplate">
+        <constructor-arg ref="onlinefactory"/>
+    </bean>
+    
+    <bean id="userBankOperation" class="com.lhdb.game.mongo.dao.UserBankOperation">
+        <property name="mongoTemplate" ref="bankmongo"/>
+    </bean>
+    
+    <bean id="userNoticeOperation" class="com.lhdb.game.mongo.dao.UserNoticeOperation">
+        <property name="mongoTemplate" ref="noticemongo"/>
+    </bean>
+    
+    <bean id="userWinLoseLogOperation" class="com.lhdb.game.mongo.dao.UserWinLoseLogOperation">
+        <property name="mongoTemplate" ref="winloselogmongo"/>
+    </bean>
+    
+    <bean id="onlineUserOperation" class="com.lhdb.game.mongo.dao.OnlineUserOperation">
+        <property name="mongoTemplate" ref="onlinemongo"/>
+    </bean>
+    <!--mongo配置结束-->
+    
+</beans>

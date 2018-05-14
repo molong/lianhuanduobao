@@ -1,0 +1,128 @@
+package cn.lhdb.controller;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.lhdb.game.mongo.entity.UserNotice;
+import com.lhdb.game.util.Page;
+import com.lhdb.game.util.Response;
+import com.lhdb.service.NoticeService;
+
+@Controller
+@RequestMapping("/notice")
+public class NoticeController {
+	
+	private static Logger logger = Logger.getLogger(NoticeController.class);
+	
+	@Autowired
+	private NoticeService noticeService;
+	
+	/**
+	 * @Title: 分页查询
+	 * @Description:
+	 * @param user
+	 * @param pager
+	 * @return
+	 * @author Horst
+	 * @date 2016年12月2日 下午5:30:44
+	 * @version V1.0
+	 */
+	@ResponseBody
+	@RequestMapping("/search")
+	private Response search(Page pager){
+		Response response = new Response();
+		try{
+			response = noticeService.search(pager); 
+		}catch(Exception e){
+			logger.error("error", e);
+			e.printStackTrace();
+			response.setSuccess(false);
+			response.setMessage(e.getMessage());
+		}
+		return response;
+	}
+	
+	/**
+	 * @Title: 保存
+	 * @Description:
+	 * @param user
+	 * @param pager
+	 * @return
+	 * @author Horst
+	 * @date 2016年12月2日 下午5:30:44
+	 * @version V1.0
+	 */
+	@ResponseBody
+	@RequestMapping("/save")
+	private Response save(UserNotice notice){
+		Response response = new Response();
+		try{
+			response = noticeService.save(notice); 
+		}catch(Exception e){
+			logger.error("error", e);
+			e.printStackTrace();
+			response.setSuccess(false);
+			response.setMessage(e.getMessage());
+		}
+		return response;
+	}
+	
+	@ResponseBody
+	@RequestMapping("/find")
+	private Response find(UserNotice notice){
+		Response response = new Response();
+		try{
+			response = noticeService.findByUserId(notice); 
+		}catch(Exception e){
+			e.printStackTrace();
+			logger.error("error", e);
+			response.setSuccess(false);
+			response.setMessage(e.getMessage());
+		}
+		return response;
+	}
+	
+	/**
+	 * @Title: 更新
+	 * @Description:
+	 * @param user
+	 * @param pager
+	 * @return
+	 * @author Horst
+	 * @date 2016年12月2日 下午5:30:44
+	 * @version V1.0
+	 */
+	@ResponseBody
+	@RequestMapping("/update")
+	private Response update(UserNotice notice){
+		Response response = new Response();
+		try{
+			response = noticeService.update(notice); 
+		}catch(Exception e){
+			e.printStackTrace();
+			logger.error("error", e);
+			response.setSuccess(false);
+			response.setMessage(e.getMessage());
+		}
+		return response;
+	}
+	
+	@ResponseBody
+	@RequestMapping("/del")
+	private Response del(UserNotice notice){
+		Response response = new Response();
+		try{
+			response = noticeService.delete(notice); 
+		}catch(Exception e){
+			e.printStackTrace();
+			logger.error("error", e);
+			response.setSuccess(false);
+			response.setMessage(e.getMessage());
+		}
+		return response;
+	}
+
+}

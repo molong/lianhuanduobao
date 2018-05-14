@@ -1,0 +1,25 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+	<title>添加弧线</title>
+	<script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=yrtAIBprpIqcZ7qkK77m4CQ84DAga3Ms"></script>
+	<script type="text/javascript" src="http://api.map.baidu.com/library/CurveLine/1.5/src/CurveLine.min.js"></script>
+	<style type="text/css">
+		html,body{
+			width:100%;
+			height:100%;
+			margin:0;
+			overflow:hidden;
+			font-family:"微软雅黑";
+		}
+	</style>
+</head>
+<body>
+	<div style="width:100%;height:100%;border:1px solid gray" id="container"></div>
+<jsp:include page="public/js.jsp"></jsp:include>
+<script src="../js/account/baidumap.js?3"></script> 
+</body>
+</html>

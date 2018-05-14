@@ -1,0 +1,626 @@
+document.title = "后台管理系统";
+
+/***时间戳转换成日期**/
+function unix_to_datetime(unix) {
+    var now = new Date(parseInt(unix));
+    return now.toLocaleString().replace(/年|月/g, "-").replace(/日/g, " "); 
+}
+
+
+//图片上传预览    IE是用了滤镜。
+function previewImage(file)
+{
+  var MAXWIDTH  = 90; 
+  var MAXHEIGHT = 90;
+  var div = document.getElementById('preview');
+  if (file.files && file.files[0])
+  {
+      div.innerHTML ='<img id=imghead>';
+      var img = document.getElementById('imghead');
+      img.onload = function(){
+        var rect = clacImgZoomParam(MAXWIDTH, MAXHEIGHT, img.offsetWidth, img.offsetHeight);
+        img.width  =  rect.width;
+        img.height =  rect.height;
+//         img.style.marginLeft = rect.left+'px';
+//        img.style.marginTop = rect.top+'px';
+      }
+      var reader = new FileReader();
+      reader.onload = function(evt){img.src = evt.target.result;}
+      reader.readAsDataURL(file.files[0]);
+  }
+  else //兼容IE
+  {
+    var sFilter='filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(sizingMethod=scale,src="';
+    file.select();
+    var src = document.selection.createRange().text;
+    div.innerHTML = '<img id=imghead>';
+    var img = document.getElementById('imghead');
+    img.filters.item('DXImageTransform.Microsoft.AlphaImageLoader').src = src;
+    var rect = clacImgZoomParam(MAXWIDTH, MAXHEIGHT, img.offsetWidth, img.offsetHeight);
+    status =('rect:'+rect.top+','+rect.left+','+rect.width+','+rect.height);
+    div.innerHTML = "<div id=divhead style='width:"+rect.width+"px;height:"+rect.height+"px;margin-top:"+rect.top+"px;"+sFilter+src+"\"'></div>";
+  }
+}
+function clacImgZoomParam( maxWidth, maxHeight, width, height ){
+    var param = {top:0, left:0, width:width, height:height};
+    if( width>maxWidth || height>maxHeight )
+    {
+        rateWidth = width / maxWidth;
+        rateHeight = height / maxHeight;
+         
+        if( rateWidth > rateHeight )
+        {
+            param.width =  maxWidth;
+            param.height = Math.round(height / rateWidth);
+        }else
+        {
+            param.width = Math.round(width / rateHeight);
+            param.height = maxHeight;
+        }
+    }
+     
+    param.left = Math.round((maxWidth - param.width) / 2);
+    param.top = Math.round((maxHeight - param.height) / 2);
+    return param;
+}
+				   
+$(function(){
+	$(document).ajaxComplete(function(event,request, settings){
+		var  location = request.responseText;
+		if(location == "login.html"){
+		 	window.location.href = "../"+location;
+		 	return false;
+		}
+		 
+		if(location == "no_permission"){
+			$(".x-mask-msg-inner").parent().remove();
+			alert("对不起，您没有该操作权限！");
+			return false;
+		}
+	});
+	
+	var pid = getQueryString('pid');
+	var cid = getQueryString('cid');
+	var closed = getQueryString('closed');
+	if( closed == 1){
+		$('body').addClass('page-sidebar-closed');
+	}
+	if(pid != ""){
+		$('#'+pid).addClass('active');
+		$('#'+cid).addClass('active');
+	}
+	
+});
+
+function showEmptyDesc(tableId){
+	var emptyDesc = '<div id="reminder" class="row-fluid pagelist2" >';
+	emptyDesc += '<h5>目前还没有数据.................</h5></div>';
+	$(emptyDesc).insertAfter("#"+tableId);
+}
+
+function showLoading(tableId){
+	var emptyDesc = '<div id="loadgif" class="row-fluid pagelist2">';
+	emptyDesc += 		'<div id="loadmask-1247-msgEl" class=" x-mask-msg-inner">';
+	emptyDesc += 	 		'<div id="loadmask-1247-msgTextEl" class="x-mask-msg-text">读取中...</div>';
+	emptyDesc += 		'</div>';
+	emptyDesc += 	'</div>';
+	$(emptyDesc).insertAfter("#"+tableId);
+}
+
+
+function hideEmptyDesc(){
+	$("#reminder").remove();
+}
+
+function hideLoading(){
+	$("#loadgif").remove();
+}
+
+//公用时间格式
+function getDateStr(dd){
+	var y = dd.getFullYear();
+	var m = dd.getMonth()+1;//获取当前月份的日期
+	m=parseInt(m,10);
+	if(m<10){
+		m="0"+m;
+	}
+   
+	var d = dd.getDate();
+	d=parseInt(d,10);
+	if(d<10){
+		d="0"+d;
+	}
+	return y+"-"+m+"-"+d;
+}
+
+var t=new Date();
+//检索,昨天,今天,本周,上周通用方法    如果传入第四个参数且是函数则替换默认的search方法  第五个参数为回调函数的参数
+function day(beginid,endid,times, callback, arguments){
+	var today=new Date();
+	var cdate_arr = $("#"+beginid).val().split("-");
+	if(cdate_arr && cdate_arr.length) {
+		t.setFullYear(cdate_arr[0]);
+		t.setMonth(cdate_arr[1]-1);
+		t.setDate(cdate_arr[2]);
+	}
+	switch (times) {
+		case '今天':
+		
+		$("#"+beginid).val(getDateStr(today));
+		$("#"+endid).val(getDateStr(today));
+		
+	break;
+	case '昨天':
+		
+		today.setDate(today.getDate()-1);
+		$("#"+beginid).val(getDateStr(today));
+		$("#"+endid).val(getDateStr(today));
+		
+		break;
+	case '向前一天':
+		
+		t.setDate(t.getDate()-1);
+		$("#"+beginid).val(getDateStr(t));
+		$("#"+endid).val(getDateStr(t));
+		
+		break;
+	case '向后一天':
+
+		t.setDate(t.getDate()+1);
+		$("#"+beginid).val(getDateStr(t));
+		$("#"+endid).val(getDateStr(t));
+
+		break;
+	case '本周':
+		var weekday=today.getDay();
+		var monday;
+		var friday;
+		if(weekday==0){
+			 monday=new Date(1000*60*60*24*(weekday-6) + today.getTime());    
+			 friday=new Date(1000*60*60*24*(weekday) + today.getTime());
+			
+		}else{
+			 monday=new Date(1000*60*60*24*(1-weekday) + today.getTime());    
+			 friday=new Date(1000*60*60*24*(7-weekday) + today.getTime());
+		}
+		
+	    $("#"+beginid).val(getDateStr(monday));
+		$("#"+endid).val(getDateStr(friday));
+		
+		break;
+	case  '上周':
+		 //返回date是一周中的某一天    
+        var week=today.getDay();   
+        //一天的毫秒数    
+        var millisecond=1000*60*60*24;   
+        //减去的天数    
+        var minusDay=week!=0?week-1:6;   
+        //获得当前周的第一天    
+        var currentWeekDayOne=new Date(today.getTime()-(millisecond*minusDay));   
+        //上周最后一天即本周开始的前一天    
+        var priorWeekLastDay=new Date(currentWeekDayOne.getTime()-millisecond);   
+        //上周的第一天    
+        var priorWeekFirstDay=new Date(priorWeekLastDay.getTime()-(millisecond*6));   
+	    $("#"+beginid).val(getDateStr(priorWeekFirstDay));
+	    $("#"+endid).val(getDateStr(priorWeekLastDay));
+		break;
+	default:
+		//其它情况默认检索
+			break;
+	}
+	var args = [].concat(arguments);
+	if(callback && $.isFunction(callback)) {
+		callback.apply(this, args);
+	} else {
+		search(1);
+	}
+}
+
+function show(url,pid,cid){
+	 var closed = 0;
+	 if($('body').attr("class").indexOf("page-sidebar-closed")>0){ 
+		 closed = 1;
+	 }
+	 location.href = '../main/'+url+"?pid="+pid+"&cid="+cid+"&closed="+closed;
+}
+
+function getNowFormatDate() {
+    var date = new Date();
+    var seperator1 = "-";
+    var month = date.getMonth() + 1;
+    var strDate = date.getDate();
+    if (month >= 1 && month <= 9) {
+        month = "0" + month;
+    }
+    if (strDate >= 0 && strDate <= 9) {
+        strDate = "0" + strDate;
+    }
+    var currentdate = date.getFullYear() + seperator1 + month + seperator1 + strDate;
+    return currentdate;
+}
+
+function DateDiff(sDate1, sDate2){
+    var aDate,oDate1,oDate2,iDays;    
+    aDate = sDate1.split("-");    
+    oDate1 = new Date(aDate[1] + '-' + aDate[2] + '-' + aDate[0]);
+    aDate =  sDate2.split("-");    
+    oDate2 = new Date(aDate[1] + '-' + aDate[2] + '-' + aDate[0]);    
+    iDays = parseInt(Math.abs(oDate1-oDate2)/1000/60/60/24);
+    return  iDays;  
+}
+
+//js的方法得到地址栏里所传过来的值
+function getQueryString(name) {
+    var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+    var r = window.location.search.substr(1).match(reg);
+    if (r != null) return unescape(r[2]); return "";
+}
+
+function myBootstrapPaginator( paginatorId,pager ) {
+	
+	//移除标题复选框的勾选状态
+	removeChecked();
+	
+	var paginator = $('#'+paginatorId);
+	if( pager.totalCount > 0 ){
+		paginator.parent().show();
+		paginator.bootstrapPaginator({
+			currentPage: pager.currentPage ,
+	        totalPages: pager.totalPages,
+	        tooltipTitles: function (type, page, current) {
+                switch (type) {
+                case "first":
+                    return "第一页";
+                case "prev":
+                    return "上一页";
+                case "next":
+                    return "下一页";
+                case "last":
+                    return "最后一页";
+                case "page":
+                    return "进入第" + page + "页";
+                }
+            },
+	       
+	        onPageClicked: function(e,originalEvent,type,page){
+	            search(page);
+	        }
+		});
+		
+		var start = showNum(pager.start+1);
+		var end = showNum(pager.start+pager.limit);
+		var totalCount = showNum(pager.totalCount);
+		paginator.append('<div class="showtotlepages">共 '+ totalCount +" 条记录，显示 "+ start +' ~ '+ end +' 条记录</div>');
+	}
+	
+}
+
+//移除标题复选框的勾选状态
+function removeChecked(){
+	var allselect_input = $("#allselect");
+	if(allselect_input) {
+		allselect_input.prop("checked", false);
+	}
+	var checkedall_input = $("#CheckedAll");
+	if(checkedall_input) {
+		checkedall_input.prop("checked", false);
+	}
+	var all_choose_input = $("#all_choose");
+	if(all_choose_input) {
+		all_choose_input.prop("checked", false);
+	}
+}
+
+/** 
+ * 时间对象的格式化; 
+ */  
+Date.prototype.format = function(format) {  
+    /* 
+     * eg:format="yyyy-MM-dd hh:mm:ss"; 
+     */  
+    var o = {  
+        "M+" : this.getMonth() + 1, // month  
+        "d+" : this.getDate(), // day  
+        "h+" : this.getHours(), // hour  
+        "m+" : this.getMinutes(), // minute  
+        "s+" : this.getSeconds(), // second  
+        "q+" : Math.floor((this.getMonth() + 3) / 3), // quarter  
+        "S" : this.getMilliseconds()  
+        // millisecond  
+    };
+  
+    if (/(y+)/.test(format)) {  
+        format = format.replace(RegExp.$1, (this.getFullYear() + "").substr(4  
+                        - RegExp.$1.length));  
+    }  
+  
+    for (var k in o) {  
+        if (new RegExp("(" + k + ")").test(format)) {  
+            format = format.replace(RegExp.$1, RegExp.$1.length == 1  
+                            ? o[k]  
+                            : ("00" + o[k]).substr(("" + o[k]).length));  
+        }  
+    }  
+    return format;  
+};
+
+//时间毫秒数格式化为天小时分钟秒
+function showDuration(secondNum){
+	var str = "";
+	if(secondNum == null) return str;
+	var temp = div( secondNum , 60*60*24 );
+	if(temp>0){
+		str = str + temp +"天";
+		secondNum = secondNum % (60*60*24);
+	}
+	
+	temp = div( secondNum , 60*60 );
+	if(temp>0){
+		str = str + temp +"时";
+		secondNum = secondNum % (60*60);
+	}
+	
+	temp = div( secondNum , 60 );
+	if(temp>0){
+		str = str + temp +"分";
+		secondNum = secondNum % (60);
+	}
+	if(str.length == 0 || secondNum != 0) {
+		str = str +  secondNum  +"秒";
+	}
+	return str;
+}
+		
+		
+function div(exp1, exp2)  
+{  
+    var n1 = Math.round(exp1); //四舍五入  
+    var n2 = Math.round(exp2); //四舍五入  
+      
+    var rslt = n1/n2; //除  
+      
+    if (rslt >= 0)  
+    {  
+        rslt = Math.floor(rslt); //返回小于等于原rslt的最大整数。  
+    }  
+    else  
+    {  
+        rslt = Math.ceil(rslt); //返回大于等于原rslt的最小整数。  
+    }  
+      
+    return rslt;  
+} 
+		
+//判断是否Float类型
+function isFloat(c)
+{
+    var r= /^[+-]?[1-9]?[0-9]*\.[0-9]*$/;
+    return r.test(c);
+}
+		
+//数字格式化
+function showNum(numArg){
+	 if(numArg == null) return 0;
+	 var num ;
+	 var littleNum = null ;
+	 //如果是小数
+	 if(isFloat(numArg)){
+		 var a = numArg.toString().split(".");
+		 littleNum = a[1]; //保存小数部分
+		 num = parseInt(a[0]); //保存整数部分
+	 }else{
+		 num = numArg;
+	 }
+	 var str = "";
+	 if(num == null) return str;
+	 if(num<0){ str="-";num = -num; }
+	 
+	 var temp = div( num , 100000000 );
+	 if(temp>0){
+			str = str + temp +",";
+			num = num % (100000000);
+	 }
+	 var temp = div( num , 10000 );
+	 if (str == ""|| str =="-") {
+		 if(temp>0){
+			 	str = str + temp+",";
+				num = num % (10000);
+		 }
+	 }else{
+		 if(temp>=0 && temp <10){
+			 str = str +"000"+ temp+",";
+			 num = num % (10000);
+		 }else if(temp>=10 && temp <100){
+			 str = str +"00"+ temp+",";
+			 num = num % (10000);
+		 }else if(temp>=100 && temp <1000){
+			 str = str +"0"+ temp+",";
+			 num = num % (10000);
+		 }else {
+			 str = str + temp+",";
+			 num = num % (10000);
+		 }
+	 }
+	 var temp = div( num , 1000 );
+	 if(Math.abs(numArg)>=10000  ||  ( Math.abs(numArg)<10000  && temp>0  ) ){
+		 str = str + temp;
+	 }
+	 num = num % (1000);
+	 var temp = div( num , 100 );
+	 if(Math.abs(numArg)>=1000  ||  ( Math.abs(numArg)<1000  && temp>0  ) ){
+		 str = str + temp;
+	 }
+	 num = num % (100);
+	 var temp = div( num , 10 );
+	 if(Math.abs(numArg)>=100  ||  ( Math.abs(numArg)<100  && temp>0  ) ){
+		 str = str + temp;
+	 }
+	 num = num % (10);
+	 str = str +  num ;
+	 if(isFloat(numArg)){
+		 str = str + '.' + littleNum;
+	 }
+	 return str;
+}
+		
+//打开新的窗口
+function  openNewWin(url, name, width, height){
+	  var left = (window.screen.availWidth - width) / 2;
+	  var top = (window.screen.availHeight - height) / 2;
+	  var popup=window.open(url,name,"toolbar=no,location=no,directories=no,status=yes,menubar=no,scrollbars=yes,resizable=yes,left=" + left + ",top=" + top + ",width=" + width + ",height=" + height);
+	  if (popup != null) popup.focus();                 
+}
+		
+function getIpAddress(ip,boxid){
+	$.getScript('http://int.dpool.sina.com.cn/iplookup/iplookup.php?format=js&ip='+ip, function(_result){  
+		if (remote_ip_info.ret == '1'){   
+			$('#'+boxid).html(remote_ip_info.country+remote_ip_info.province+remote_ip_info.city+remote_ip_info.district+remote_ip_info.isp+remote_ip_info.type+remote_ip_info.desc);   
+		} else {   
+			$('#'+boxid).html('没有找到匹配的 IP 地址信息！' );   
+		}  
+	});
+}
+
+//处理null值
+function formatNull(obj){
+	if(obj == null){
+		return ("-");
+	}else{
+		return obj;
+	}
+}
+
+//截取固定长度字符串
+function subString10(objStr){
+	var str;
+	var length = 10;
+	if(objStr.length < length){
+		str = objStr;
+	}else{
+		str = objStr.substring(0,length) + "...";
+	}
+	return str;
+}
+		
+//创建一个Map对象，模拟java的map方法
+function Map(){
+	this.container = new Object();
+}
+
+Map.prototype.put = function(key, value){
+	this.container[key] = value;
+};
+
+Map.prototype.get = function(key){
+	return this.container[key];
+};
+
+Map.prototype.keySet = function() {
+	var keyset = new Array();
+	var count = 0;
+	for (var key in this.container) {
+		// 跳过object的extend函数
+		if (key == 'extend') {
+			continue;
+		}
+		keyset[count] = key;
+		count++;
+	}
+	return keyset;
+};
+
+Map.prototype.size = function() {
+	var count = 0;
+	for (var key in this.container) {
+		// 跳过object的extend函数
+		if (key == 'extend'){
+		continue;
+		}
+	count++;
+	}
+	return count;
+};
+
+Map.prototype.remove = function(key) {
+	delete this.container[key];
+};
+
+Map.prototype.toString = function(){
+	var str = "";
+	for (var i = 0, keys = this.keySet(), len = keys.length; i < len; i++) {
+		str = str + keys[i] + "=" + this.container[keys[i]] + ";\n";
+	}
+	return str;
+};
+
+//复选框全选
+function allselect(){
+	if($("#allselect").is(":checked")){
+		$("#itemContainer input[name='checkbox']").each(function () {
+			  $(this).prop("checked","checked");
+		});
+		// 按钮置为可用状态
+		$("#btns input[name='btn']").each(function () {
+			$(this).attr("disabled",false);
+		});
+	}else{
+		$("#itemContainer input[name='checkbox']").each(function () {
+				$(this).prop("checked",false);
+		});
+		// 按钮置为不可用状态
+		$("#btns input[name='btn']").each(function () {
+			$(this).attr("disabled",true);
+		});
+	}
+}
+
+//改变复选框选中状态
+function changeSelect(obj){
+	var i = 0;
+	$("#itemContainer input[name='checkbox']").each(function () {
+		if($(this).is(":checked")){
+			i++;
+		}
+	});
+	if(i>0){
+		$("#btns input[name='btn']").each(function () {
+			$(this).attr("disabled",false);
+		});
+	}else{
+		$("#btns input[name='btn']").each(function () {
+			$(this).attr("disabled",true);
+		});
+	}
+}
+
+//截取字符串
+function splitchars() {
+	var addresses = $(".splitchars");
+	for(var i = 0; i< addresses.length; i++) {
+		var address = $(addresses[i]);
+		if(address.html().length > 6) {
+			address.html(address.html().substring(0, 6) + "...");
+		}
+	}
+}
+
+$.messager.model = { 
+	ok:{ text: "确定", classed: 'btn-default' },
+	cancel: { text: "取消", classed: 'btn-error' }
+};
+
+function addDate(dateObj,dateNum){
+	return new Date( dateObj.getTime() + 24 * 60 * 60 * 1000 * dateNum );
+}
+//浮点判断
+function isFloat(score){
+	var re = /^(-?\d+)(\.\d+)?$/;//浮点数/^\d+[.]?\d*$/
+	return re.test(score);
+}
+function fRandomBy(under, over){ 
+   switch(arguments.length){ 
+     case 1: return parseInt(Math.random()*under+1); 
+     case 2: return parseInt(Math.random()*(over-under+1) + under); 
+     default: return 0; 
+   } 
+}

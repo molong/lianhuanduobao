@@ -1,0 +1,52 @@
+/*Booking Form*/
+.booking-search {
+background: #F5F5F5;
+border-bottom: 1px solid #E8E8E8;
+margin:0px auto;
+padding:5px 7px 0px 7px;
+border-top:1px solid #b4b4b4;
+}
+
+.booking-search form {
+  margin: 0;
+}
+
+.booking-search .booking-btn {
+  font-size: 18px;
+  padding: 9px 15px;
+  min-width: 248px;
+}
+
+.booking-search input.m-wrap {
+  background: #fff !important;
+}
+
+.booking-search .margin-right-20 {
+  margin-right: 20px;
+}
+
+.booking-search .search-clearfix {
+  overflow: hidden;
+}
+
+.booking-search .booking-option .controls {
+  padding: 5px 0;
+}
+
+.booking-search .search-clearfix .control-group,
+.booking-search .search-clearfix .input-append, 
+.booking-search .search-clearfix .input-prepend {
+  margin-bottom: 0;
+}
+
+.booking-search .margin-bottom-20 {
+  margin-bottom: 20px;
+}
+
+
+
+@media (max-width: 480px) {
+  .booking-offer .booking-offer-in {
+    right: 15px;
+  }
+}

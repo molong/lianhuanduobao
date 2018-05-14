@@ -1,0 +1,52 @@
+package com.lhdb.game.mongo.dao;
+
+import org.apache.log4j.Logger;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+
+import com.lhdb.game.mongo.entity.UserWinLoseLog;
+import com.mongodb.WriteResult;
+
+public class UserWinLoseLogOperation {
+	
+	private static Logger logger = Logger.getLogger(UserWinLoseLogOperation.class);
+	
+	MongoTemplate mongoTemplate;
+	private final String COLLECTION = "winloselog";
+	 
+	public void setMongoTemplate(MongoTemplate mongoTemplate) {
+		this.mongoTemplate = mongoTemplate;
+	}
+    
+    public String insert(UserWinLoseLog log){
+    	if (log == null || log.getUserId() == null)
+			return null;
+        mongoTemplate.insert(log, COLLECTION);
+        return log.getId();
+    }
+	
+	public UserWinLoseLog findByUserIdAndWinScore(String id) {
+		Query query = new Query(Criteria.where("_id").is(id).and("winScore").gt(20000).and("status").is(0));
+		return mongoTemplate.findOne(query, UserWinLoseLog.class, COLLECTION);
+	}
+	
+	public int updateStatus(UserWinLoseLog log) {
+    	int num = -1;
+		if (log == null)
+			return num;
+		Criteria criteria = Criteria.where("_id").is(log.getId());
+		Query query = new Query(criteria);
+		Update update = new Update();
+		update.set("status", 1);
+		try{
+			WriteResult writeResult = mongoTemplate.updateFirst(query, update, UserWinLoseLog.class, COLLECTION);
+			num = writeResult.getN();
+		}catch(Exception e){
+			logger.info("mongo update error id="+log.getId()+e);
+			return 0;
+		}
+		return num;
+	}
+}

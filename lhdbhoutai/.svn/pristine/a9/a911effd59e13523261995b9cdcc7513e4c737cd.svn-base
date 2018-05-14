@@ -1,0 +1,223 @@
+var id;
+var isgps = false;
+//百度地图API功能
+var map = new BMap.Map("container");
+var pointTempArr = new Array();
+var num = 0;
+jQuery(document).ready(function() {
+	var guiji=getQueryString("guiji");
+	if(guiji=="1"){
+		trail();
+	}else{
+		real();
+	}
+});
+function openReal(){
+	isgps = false;
+}
+function openTrail(){
+	isgps = true;
+}
+function trail() {
+	if(isgps == false){
+		map = new BMap.Map("container");
+	}
+	var userid=getQueryString("userid");
+	hideEmptyDesc();
+	showLoading("table-data");
+	$.ajax({
+		url : '../gps/trail',
+		type : 'post',
+		data : {
+	         "userId":userid,
+	         "id":id
+		},
+		dataType : "json",
+		success : function(resultObject) {
+			if(resultObject.success){
+				hideLoading();//隐藏进度条
+				hideEmptyDesc();
+				if(resultObject.data.length>0){
+					var i = 0;
+					var points = new Array();
+					var convertor = new BMap.Convertor();
+					var pointArr = [];
+					$.each(resultObject.data, function(key, val) {
+//						if(i==0){
+//							map.centerAndZoom(new BMap.Point(val.latitude, val.longitude), 18);
+//							map.enableScrollWheelZoom();
+//						}
+						if(val.longitude>0&&val.latitude>0){
+							pointArr[i] = new BMap.Point(val.longitude,val.latitude);
+	//						pointArr.push(new BMap.Point(val.latitude,val.longitude));
+							i++;
+						}
+					});
+//					var curve = new BMapLib.CurveLine(points, {strokeColor:"blue", strokeWeight:3, strokeOpacity:0.5}); //创建弧线对象
+//					map.addOverlay(curve); //添加到地图中
+//					curve.enableEditing(); //开启编辑功能
+					convertor.translate(pointArr, 1, 5, trailTranslateCallback);
+				}
+			}else{
+				hideLoading();//隐藏进度条
+				showEmptyDesc("userInfoDiv");
+			}
+		}
+	});
+}
+
+function real() {
+	if(isgps == true){
+		map = new BMap.Map("container");
+	}
+	var userid=getQueryString("userid");
+	hideEmptyDesc();
+	showLoading("table-data");
+	$.ajax({
+		url : '../gps/real',
+		type : 'post',
+		data : {
+	         "userId":userid
+		},
+		dataType : "json",
+		success : function(resultObject) {
+			if(resultObject.success){
+				hideLoading();//隐藏进度条
+				hideEmptyDesc();
+				if(resultObject.data.length>0){
+					map.enableScrollWheelZoom(true);
+					var i = 0;
+					map.removeOverlay();
+					var convertor = new BMap.Convertor();
+					var pointArr = [];
+					$.each(resultObject.data, function(key, val) {
+//						var marker = new BMap.Marker(new BMap.Point(latitude,longitude));
+//						map.addOverlay(marker);
+//						pointArr.push(new BMap.Point(latitude,longitude));
+						if(val.longitude>0&&val.latitude>0){
+							pointArr[i] = new BMap.Point(val.longitude,val.latitude);
+							i++;
+						}
+					});
+					if(pointArr.length>0){
+//						map.centerAndZoom(pointArr[pointArr.length-1], 20);
+						convertor.translate(pointArr, 1, 5, translateCallback);
+					}
+				}
+			}else{
+				hideLoading();//隐藏进度条
+				showEmptyDesc("userInfoDiv");
+			}
+		}
+	});
+}
+
+function gpslocation(){
+	var userid=getQueryString("userid");
+	hideEmptyDesc();
+	showLoading("table-data");
+	$.ajax({
+		url : '../gps/real',
+		type : 'post',
+		data : {
+	         "userId":userid
+		},
+		dataType : "json",
+		success : function(resultObject) {
+			if(resultObject.success){
+				if(resultObject.data.length>0){
+					map.enableScrollWheelZoom(true);
+					var convertor = new BMap.Convertor();
+					var pointArr = [];
+					var i = 0;
+					$.each(resultObject.data, function(key, val) {
+						var latitude = val.latitude;
+						var longitude = val.longitude;
+//						var marker = new BMap.Marker(new BMap.Point(latitude,longitude));
+//						map.addOverlay(marker);
+//						pointArr.push(new BMap.Point(latitude,longitude));
+						if(val.longitude>0&&val.latitude>0){
+							pointArr[i] = new BMap.Point(val.longitude,val.latitude);
+							i++;
+						}
+					});
+					if(pointArr.length>0){
+//						map.centerAndZoom(pointArr[0], 18);
+						convertor.translate(pointArr, 1, 5, translateCallback);
+					}
+				}
+			}
+		}
+	});
+}
+//坐标转换完之后的回调函数
+translateCallback = function (data){
+  if(data.status === 0) {
+	  var isUpdate = false;
+	  for (var i = 0; i < data.points.length; i++) {
+		  var lng = parseFloat(data.points[i].lng);
+		  var lat = parseFloat(data.points[i].lat);
+		  var toUp = false;
+		  for (var j = 0; j < pointTempArr.length; j++) {
+			  var lng1 = parseFloat(pointTempArr[j].lng);
+			  var lat1 = parseFloat(pointTempArr[j].lat);
+			  if(Math.abs(lng-lng1)<0.00001&&Math.abs(lat-lat1)<0.00001){
+				  toUp = true;
+				  continue;
+			  }
+		  }
+		  if(toUp==false){
+			  isUpdate = true;
+		  }
+	  }
+	  if(isUpdate==true||num==0){
+		  isUpdate = false;
+		  pointTempArr = data.points;
+		  map.removeOverlay();
+		  map.centerAndZoom(data.points[0], 20);
+		  for (var i = 0; i < data.points.length; i++) {
+	          map.addOverlay(new BMap.Marker(data.points[i]));
+	          map.setCenter(data.points[i]);
+	      }
+		  num++;
+	  }
+//    var label = new BMap.Label("转换后的百度坐标（正确）",{offset:new BMap.Size(20,-10)});
+//    marker.setLabel(label); //添加百度label
+  }
+}
+//坐标转换完之后的回调函数
+trailTranslateCallback = function (data){
+  if(data.status === 0) {
+	  map.removeOverlay();
+//	  map.centerAndZoom(data.points[0], 20);
+	  var points = new Array();
+	  map.centerAndZoom(data.points[0], 18);
+	  map.enableScrollWheelZoom();
+	  for (var i = 0; i < data.points.length; i++) {
+		  points[i] = new BMap.Point(data.points[i].lng,data.points[i].lat);
+	  }
+	  var curve = new BMapLib.CurveLine(points, {strokeColor:"blue", strokeWeight:3, strokeOpacity:0.5}); //创建弧线对象
+	  map.addOverlay(curve); //添加到地图中
+	  curve.enableEditing(); //开启编辑功能
+  }
+}
+//显示进度条
+function showLoading(tableId){
+	var emptyDesc = '<div id="loadgif" class="row-fluid pagelist2">';
+	emptyDesc += 		'<div id="loadmask-1247-msgEl" class=" x-mask-msg-inner">';
+	emptyDesc += 	 		'<div id="loadmask-1247-msgTextEl" class="x-mask-msg-text">读取中...</div>';
+	emptyDesc += 		'</div>';
+	emptyDesc += 	'</div>';
+	$(emptyDesc).insertBefore("#"+tableId);
+}
+
+//隐藏进度条
+function hideLoading(){
+	$("#loadgif").remove();
+}
+			
+		
+		 
+		 
+		 
+		 

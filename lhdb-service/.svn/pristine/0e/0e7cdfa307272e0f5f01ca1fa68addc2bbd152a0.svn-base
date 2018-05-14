@@ -1,0 +1,31 @@
+package com.lhdb.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.lhdb.game.mongo.dao.UserWinLoseLogOperation;
+import com.lhdb.game.mongo.entity.UserJewelDownLog;
+import com.lhdb.game.mongo.entity.UserNotice;
+import com.lhdb.game.util.Page;
+import com.lhdb.game.util.Response;
+import com.lhdb.game.util.pojo.ParamUtilVO;
+import com.lhdb.service.JewelDownLogService;
+
+
+@Service
+public class JewelDownLogServiceImpl implements JewelDownLogService{
+	
+	@Autowired
+	private UserWinLoseLogOperation userWinLoseLogOperation;
+	
+	public Response search(ParamUtilVO paramUtilVO, Page pager){
+		Response response = new Response();
+		org.springframework.data.domain.Page<UserJewelDownLog> list = userWinLoseLogOperation.findJewelDownLogPage(paramUtilVO, pager);
+		pager.setTotalCount(list.getNumber());
+		response.setData(list.getContent());
+		UserNotice notice = new UserNotice();
+		notice.setPager(pager);
+		response.setParams(notice);
+		return response;
+	}
+}
